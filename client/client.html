@@ -4,7 +4,55 @@
 
 <head>
   <title>Tic Tac Toe</title>
-  <script></script>
+  <script>
+    const handleResponse = async (response, gridData) => {
+      switch (response.status) {
+        case 200:
+          console.log('success!');
+          break;
+        default:
+          console.log(`Error code not implemented by client.`);
+          break;
+      }
+
+      let data = await response.json();
+      const nodeData = data.body;
+      for (let i = 0; i < 8; i++) {
+        gridData[i].innerHTML = nodeData[i];
+      }
+    }
+
+    const squareClick = async (square, gridData) => {
+      if (square.innerHTML) return;
+      square.innerHTML = 'X';
+      let dataArray = [];
+      for (const element of gridData) dataArray.push(element.innerHTML);
+      const dataString = 'board=' + dataArray.join();
+
+      let response = await fetch('/sendData', {
+        method: 'post',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
+        },
+        body: dataString,
+      });
+
+      handleResponse(response, gridData);
+    }
+
+    const init = () => {
+      const gridData = document.querySelectorAll('.grid-item');
+
+      const sendBoardData = (e) => {
+        squareClick(e.target, gridData);
+      }
+
+      gridData.forEach(square => square.onclick = sendBoardData);
+    }
+
+    window.onload = init;
+  </script>
 </head>
 
 <body>
@@ -12,15 +60,15 @@
     <h1 id="title"><b>Tic Tac Toe Server</b></h1>
   </section>
   <div id="game-grid">
-    <div class="grid-item"></div>
-    <div class="grid-item vertical"></div>
-    <div class="grid-item"></div>
-    <div class="grid-item horizontal"></div>
-    <div class="grid-item vertical horizontal" id=""></div>
-    <div class="grid-item horizontal"></div>
-    <div class="grid-item"></div>
-    <div class="grid-item vertical"></div>
-    <div class="grid-item"></div>
+    <div class="grid-item" id="0"></div>
+    <div class="grid-item vertical" id="1"></div>
+    <div class="grid-item" id="2"></div>
+    <div class="grid-item horizontal" id="3"></div>
+    <div class="grid-item vertical horizontal" id="4"></div>
+    <div class="grid-item horizontal" id="5"></div>
+    <div class="grid-item" id="6"></div>
+    <div class="grid-item vertical" id="7"></div>
+    <div class="grid-item" id="8"></div>
   </div>
 </body>
 
