@@ -24,7 +24,7 @@ const parseBody = (request, response) => {
   request.on('end', () => {
     const bodyString = Buffer.concat(body).toString();
     const bodyParams = query.parse(bodyString);
-
+    
     jsonHandler.addData(request, response, bodyParams);
   });
 }
@@ -33,6 +33,7 @@ const urlStruct = {
   '/': htmlHandler.getIndex,
   '/style.css': htmlHandler.getCSS,
   '/sendData': parseBody,
+  '/getData': jsonHandler.getData,
 }
 
 const onRequest = (request, response) => {

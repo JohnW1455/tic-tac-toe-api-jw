@@ -5,20 +5,26 @@
 <head>
   <title>Tic Tac Toe</title>
   <script>
-    const handleResponse = async (response, gridData) => {
+    const handleResponse = async (response, gridData, parseBool) => { 
       switch (response.status) {
         case 200:
           console.log('success!');
+          break;
+        case 204:
+          console.log('no data!');
           break;
         default:
           console.log(`Error code not implemented by client.`);
           break;
       }
+      console.log(response);
 
-      let data = await response.json();
-      const nodeData = data.body;
-      for (let i = 0; i < 8; i++) {
-        gridData[i].innerHTML = nodeData[i];
+      if (parseBool) {
+        let data = await response.json();
+        const nodeData = data.body;
+        for (let i = 0; i < 8; i++) {
+          gridData[i].innerHTML = nodeData[i];
+        }
       }
     }
 
@@ -38,8 +44,19 @@
         body: dataString,
       });
 
-      handleResponse(response, gridData);
+      handleResponse(response, gridData, false);
     }
+
+    const getBoard = async (gridData) => {
+      const response = await fetch('/getData');
+
+      if (response.status == 502) {
+        await getBoard(gridData);
+      } else {
+        handleResponse(response, gridData, true);
+        await getBoard(gridData);
+      }
+    };
 
     const init = () => {
       const gridData = document.querySelectorAll('.grid-item');
@@ -48,10 +65,12 @@
         squareClick(e.target, gridData);
       }
 
+      getBoard(gridData);
+
       gridData.forEach(square => square.onclick = sendBoardData);
     }
 
-    window.onload = init;
+    window.addEventListener('load', init);
   </script>
 </head>
 
