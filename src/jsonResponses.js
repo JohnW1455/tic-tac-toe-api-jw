@@ -1,11 +1,10 @@
 let gameBoard = ["", "", "", "", "", "", "", "", ""];
 let pendingResponses = [];
 
-const respondJSON = (request, response, status, object) => {
+const respondJSON = (response, status, object) => {
     response.writeHead(status, { 'Content-Type': 'application/json' });
     response.write(JSON.stringify(object));
-
-    pendingResponses.push(response);
+    response.end();
 };
 
 // function to respond without json body
@@ -16,24 +15,24 @@ const respondJSONMeta = (request, response, status) => {
 };
 
 const addData = (request, response, grid) => {
-    tempBoard = grid.board.split(',');
-    gameBoard = tempBoard;
-    
+    gameBoard = grid.board.split(',');
+    pendingResponses.forEach(element => respondJSON(element, 200, { body: gameBoard }));
+    pendingResponses.length = 0;
     return respondJSONMeta(request, response, 204);
 }
 
-const getData = (request, response) => {
+const getData = (request, response, queryParams) => {
     const responseJSON = {
         message: 'Retrieved Board Data',
     };
 
-    for (const element of pendingResponses) {
-        element.end();
+    if (queryParams.longpoll === 'true') {
+        return pendingResponses.push(response);
     }
 
     responseJSON.body = gameBoard;
 
-    return respondJSON(request, response, 200, responseJSON);
+    return respondJSON(response, 200, responseJSON);
 }
 
 // public exports

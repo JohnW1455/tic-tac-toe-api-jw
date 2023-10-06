@@ -17,13 +17,13 @@
           console.log(`Error code not implemented by client.`);
           break;
       }
-      console.log(response);
 
       if (parseBool) {
         let data = await response.json();
         const nodeData = data.body;
-        for (let i = 0; i < 8; i++) {
-          gridData[i].innerHTML = nodeData[i];
+        console.log(nodeData);
+        for (let i = 0; i < 9; i++) {
+          gridData[i].innerText = nodeData[i];
         }
       }
     }
@@ -47,14 +47,15 @@
       handleResponse(response, gridData, false);
     }
 
-    const getBoard = async (gridData) => {
-      const response = await fetch('/getData');
-
+    const getBoard = async (gridData, url) => {
+      const response = await fetch(url);
       if (response.status == 502) {
-        await getBoard(gridData);
+        console.log('error');
+        await getBoard(gridData, '/getData?longpoll=true');
       } else {
+        console.log('resending');
         handleResponse(response, gridData, true);
-        await getBoard(gridData);
+        await getBoard(gridData, '/getData?longpoll=true');
       }
     };
 
@@ -65,7 +66,7 @@
         squareClick(e.target, gridData);
       }
 
-      getBoard(gridData);
+      getBoard(gridData, '/getData');
 
       gridData.forEach(square => square.onclick = sendBoardData);
     }
