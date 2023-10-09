@@ -4,7 +4,6 @@ const query = require('querystring');
 
 const jsonHandler = require('./jsonResponses.js');
 const htmlHandler = require('./htmlResponses.js');
-const { parse } = require('path');
 
 const port = process.env.PORT || process.env.NODE_PORT || 3000;
 
@@ -24,17 +23,17 @@ const parseBody = (request, response) => {
   request.on('end', () => {
     const bodyString = Buffer.concat(body).toString();
     const bodyParams = query.parse(bodyString);
-    
+
     jsonHandler.addData(request, response, bodyParams);
   });
-}
+};
 
 const urlStruct = {
   '/': htmlHandler.getIndex,
   '/style.css': htmlHandler.getCSS,
   '/sendData': parseBody,
   '/getData': jsonHandler.getData,
-}
+};
 
 const onRequest = (request, response) => {
   const parsedUrl = url.parse(request.url);
