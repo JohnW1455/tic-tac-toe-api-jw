@@ -1,6 +1,5 @@
 let gameBoard = ["", "", "", "", "", "", "", "", ""];
 let pendingResponses = [];
-
 const respondJSON = (response, status, object) => {
     response.writeHead(status, { 'Content-Type': 'application/json' });
     response.write(JSON.stringify(object));
@@ -16,8 +15,11 @@ const respondJSONMeta = (request, response, status) => {
 
 const addData = (request, response, grid) => {
     gameBoard = grid.board.split(',');
-    pendingResponses.forEach(element => respondJSON(element, 200, { body: gameBoard }));
-    pendingResponses.length = 0;
+    let curTime = Date.now();
+    console.log(curTime);
+    const filtered = pendingResponses.filter(element => element.time < curTime);
+    filtered.forEach(element => respondJSON(element.response, 200, { body: gameBoard }));
+    pendingResponses = pendingResponses.filter(element => element.time >= curTime);
     return respondJSONMeta(request, response, 204);
 }
 
@@ -27,7 +29,7 @@ const getData = (request, response, queryParams) => {
     };
 
     if (queryParams.longpoll === 'true') {
-        return pendingResponses.push(response);
+        return pendingResponses.push({time: Date.now(), response: response});
     }
 
     responseJSON.body = gameBoard;
