@@ -15,6 +15,15 @@ body {
 
 #top h1 {
     font-size: 2em;
+    display: block;
+}
+
+#top p {
+    display: block;
+}
+
+#roomForm {
+    display: block;
 }
 
 #game-grid {
@@ -33,6 +42,10 @@ body {
     vertical-align: middle;
     line-height: 80px;
     font-size: 3em;
+}
+
+#game-text {
+    text-align: center;
 }
 
 .vertical {

@@ -5,35 +5,98 @@
 <head>
   <title>Tic Tac Toe</title>
   <script>
-    const handleResponse = async (response, gridData, parseBool) => { 
+    // variables for holding important client side info
+    // too lazy to implement local storage 
+    let currentCode;
+    let playerID;
+
+    // handles the responses the client gets from the server and acts accordingly
+    const handleResponse = async (response, gridData) => {
       switch (response.status) {
         case 200:
-          console.log('success!');
+          console.log('Success!');
+          break;
+        case 201:
+          console.log('Room Created');
           break;
         case 204:
-          console.log('no data!');
+          console.log('No Data!');
+          break;
+        case 400:
+          console.log('Missing Room Code');
+          break;
+        case 403:
+          console.log('Forbidden');
+          break;
+        case 299:
+          console.log("Game Begun!");
+          hideShowGrid();
           break;
         default:
           console.log(`Error code not implemented by client.`);
           break;
       }
 
-      if (parseBool) {
+      // if the response isn't just a header
+      if (response.status !== 204) {
         let data = await response.json();
-        const nodeData = data.body;
-        console.log(nodeData);
-        for (let i = 0; i < 9; i++) {
-          gridData[i].innerText = nodeData[i];
+
+        // fires when the game starts, saving the player ID and the room code
+        if (!currentCode && data.code) {
+          currentCode = data.code;
+          playerID = data.playerID;
+          getBoard(gridData, `/getData?longpoll=true&code=${currentCode}&playerID=${playerID}`);
+        }
+
+        // used for making sure playerTurn value exists
+        let keys = Object.keys(data);
+        const gameText = document.querySelector('#game-text');
+        
+        // for enabling the board for clicking when its that player's turn
+        // also displaying waiting text
+        if (keys.includes('playerTurn') && data.playerTurn === playerID) {
+          gridData.forEach(element => element.style.pointerEvents = "auto");
+          gameText.innerHTML = ``;
+        } else { 
+          gameText.innerHTML = `Waiting for Opponent's Move...`;
+        }
+
+        // only matters before the game starts 
+        // displays appropriate waiting text
+        if (data.message) {
+          const messagePara = document.querySelector('#responseMessage');
+          messagePara.innerHTML = `${data.message}`;
+        }
+
+        // updates the board with the correct data from the server
+        if (data.body) {
+          const nodeData = data.body;
+          console.log(nodeData);
+          for (let i = 0; i < 9; i++) {
+            gridData[i].innerText = nodeData[i];
+          }
         }
       }
     }
 
+    // called when an empty square on the board is clicked and its your turn
+    // otherwise won't fire
     const squareClick = async (square, gridData) => {
       if (square.innerHTML) return;
-      square.innerHTML = 'X';
+      if (playerID === 0) {
+        square.innerHTML = 'X';
+      } else {
+        square.innerHTML = 'O';
+      }
+      
       let dataArray = [];
+
+      // disables the board after it gets clicked
+      gridData.forEach(element => element.style.pointerEvents = "none");
+
+      // grabs all the board data and sends it off in url encoded format
       for (const element of gridData) dataArray.push(element.innerHTML);
-      const dataString = 'board=' + dataArray.join();
+      const dataString = `board=${dataArray.join()}&code=${currentCode}&playerID=${playerID}`;
 
       let response = await fetch('/sendData', {
         method: 'post',
@@ -44,31 +107,84 @@
         body: dataString,
       });
 
-      handleResponse(response, gridData, false);
+      // response and grid data gets sent to handle response once it comes back
+      handleResponse(response, gridData);
     }
 
+    // triggers when the room form is submitted
+    // sends off room code in URL encoded format
+    const sendRoom = async (roomCode, gridData) => {
+      const formData = `code=${roomCode.value}`;
+
+      let response = await fetch('/checkRoom', {
+        method: 'post',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
+        },
+        body: formData,
+      });
+
+      handleResponse(response, gridData);
+    }
+
+    // client side long poll request part
+    // starts a loop of sending off requests to create a pseudo real time effect
     const getBoard = async (gridData, url) => {
       const response = await fetch(url);
       if (response.status == 502) {
         console.log('error');
-        await getBoard(gridData, '/getData?longpoll=true');
+        await getBoard(gridData, `/getData?longpoll=true&code=${currentCode}&playerID=${playerID}`);
       } else {
         console.log('resending');
-        handleResponse(response, gridData, true);
-        await getBoard(gridData, '/getData?longpoll=true');
+        handleResponse(response, gridData);
+        await getBoard(gridData, `/getData?longpoll=true&code=${currentCode}&playerID=${playerID}`);
       }
     };
 
+    // method for flipping the page to show and hide stuff when a game starts
+    const hideShowGrid = () => {
+      const grid = document.querySelector('#game-grid');
+      const message = document.querySelector('#responseMessage');
+      const roomForm = document.querySelector('#roomForm');
+      const gameText = document.querySelector('#game-text');
+
+      if (grid.style.display === "none") {
+        grid.style.display = "grid";
+        message.style.display = "none";
+        roomForm.style.display = "none";
+        gameText.style.display = "block";
+      } else {
+        grid.style.display = "none";
+        message.style.display = "block";
+        roomForm.style.display = "block";
+        gameText.style.display = "none";
+      }
+    }
+
+    // initializes all the appropriate values and sets the methods for all the interactable elements
     const init = () => {
       const gridData = document.querySelectorAll('.grid-item');
+      document.querySelector('#game-text').style.display = "none";
 
       const sendBoardData = (e) => {
         squareClick(e.target, gridData);
       }
 
-      getBoard(gridData, '/getData');
+      gridData.forEach(element => element.style.pointerEvents = "none");
 
       gridData.forEach(square => square.onclick = sendBoardData);
+
+      const roomForm = document.querySelector('#roomForm');
+      const codeInput = document.querySelector('#roomCode');
+
+      const sendRoomData = (e) => {
+        e.preventDefault();
+        sendRoom(codeInput, gridData);
+        return false;
+      }
+
+      roomForm.addEventListener('submit', sendRoomData);
     }
 
     window.addEventListener('load', init);
@@ -78,8 +194,14 @@
 <body>
   <section id="top">
     <h1 id="title"><b>Tic Tac Toe Server</b></h1>
+    <form id="roomForm">
+      <label for="name">Room Code: </label>
+      <input id="roomCode" type="text" name="name" />
+      <input type="submit" id="createRoomBtn" value="Create/Join Room" />
+    </form>
+    <p id="responseMessage"></p>
   </section>
-  <div id="game-grid">
+  <div id="game-grid" style="display:none !important">
     <div class="grid-item" id="0"></div>
     <div class="grid-item vertical" id="1"></div>
     <div class="grid-item" id="2"></div>
@@ -90,6 +212,7 @@
     <div class="grid-item vertical" id="7"></div>
     <div class="grid-item" id="8"></div>
   </div>
+  <p id="game-text"></p>
 </body>
 
 </html>
