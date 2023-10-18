@@ -25,7 +25,7 @@ const parseBody = (request, response) => {
     const bodyString = Buffer.concat(body).toString();
     const bodyParams = query.parse(bodyString);
 
-    // if a board is sent (which is every time besides the first post) then add the 
+    // if a board is sent (which is every time besides the first post) then add the
     // data to the correct room held by the server
     if (bodyParams.board) {
       jsonHandler.addData(request, response, bodyParams);
@@ -42,7 +42,7 @@ const urlStruct = {
   '/style.css': htmlHandler.getCSS,
   '/sendData': parseBody,
   '/getData': jsonHandler.getData,
-  '/checkRoom': parseBody
+  '/checkRoom': parseBody,
 };
 
 // method called when the server gets a request

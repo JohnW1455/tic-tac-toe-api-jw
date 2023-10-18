@@ -3,15 +3,21 @@
 <link rel="stylesheet" type="text/css" href="/style.css">
 
 <head>
-  <title>Tic Tac Toe</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Margarine&family=Overpass:wght@300;400;600&display=swap"
+    rel="stylesheet">
+  <title>Tic Tac Toe Server</title>
   <script>
     // variables for holding important client side info
     // too lazy to implement local storage 
     let currentCode;
     let playerID;
 
+
     // handles the responses the client gets from the server and acts accordingly
     const handleResponse = async (response, gridData) => {
+      console.log(response.status);
       switch (response.status) {
         case 200:
           console.log('Success!');
@@ -28,9 +34,18 @@
         case 403:
           console.log('Forbidden');
           break;
+        case 404:
+          console.log('Data/Page cannot be found!');
+          break;
         case 299:
           console.log("Game Begun!");
           hideShowGrid();
+          break;
+        case 298:
+          console.log("A player has won!");
+          break;
+        case 297:
+          console.log("Neither player has won!");
           break;
         default:
           console.log(`Error code not implemented by client.`);
@@ -51,15 +66,25 @@
         // used for making sure playerTurn value exists
         let keys = Object.keys(data);
         const gameText = document.querySelector('#game-text');
-        
+
+        if (response.status !== 298 && response.status !== 297) {
+          if (keys.includes('playerTurn') && data.playerTurn === playerID) {
+            gridData.forEach(element => element.style.pointerEvents = "auto");
+            gameText.innerHTML = ``;
+          } else {
+            gameText.innerHTML = `Waiting for Opponent's Move...`;
+          }
+        } else {
+          if (response.status === 298) {
+            gameText.innerHTML = `Player ${parseInt(data.playerTurn, 10) + 1} has won!`;
+          } else {
+            gameText.innerHTML = `Cat's Game! Neither player wins.`;
+          }
+          gameText.innerHTML += `<br>Refresh the page and create a new room to play again.</br>`;
+        }
         // for enabling the board for clicking when its that player's turn
         // also displaying waiting text
-        if (keys.includes('playerTurn') && data.playerTurn === playerID) {
-          gridData.forEach(element => element.style.pointerEvents = "auto");
-          gameText.innerHTML = ``;
-        } else { 
-          gameText.innerHTML = `Waiting for Opponent's Move...`;
-        }
+
 
         // only matters before the game starts 
         // displays appropriate waiting text
@@ -88,7 +113,7 @@
       } else {
         square.innerHTML = 'O';
       }
-      
+
       let dataArray = [];
 
       // disables the board after it gets clicked
@@ -135,6 +160,8 @@
       if (response.status == 502) {
         console.log('error');
         await getBoard(gridData, `/getData?longpoll=true&code=${currentCode}&playerID=${playerID}`);
+      } else if (response.status === 298 || response.status === 297) {
+        handleResponse(response, gridData);
       } else {
         console.log('resending');
         handleResponse(response, gridData);
@@ -193,7 +220,7 @@
 
 <body>
   <section id="top">
-    <h1 id="title"><b>Tic Tac Toe Server</b></h1>
+    <h1 id="title"><b>Tic Tac Toe With Friends</b></h1>
     <form id="roomForm">
       <label for="name">Room Code: </label>
       <input id="roomCode" type="text" name="name" />
